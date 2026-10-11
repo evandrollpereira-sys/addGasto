@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Lançamento de Gastos - FinControl</title>
+
+    <!-- Configurações PWA & iOS Safari -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Gastos">
+    <meta name="theme-color" content="#0f172a">
+	<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=1">
+	<link rel="icon" type="image/png" sizes="32x32" href="/apple-touch-icon.png">
+  
+    <!-- Tailwind CSS & Font Awesome -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50: '#f0f9ff', 500: '#0284c7', 600: '#0369a1', 700: '#075985' }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+            -webkit-tap-highlight-color: transparent;
+        }
+        .touch-action-manipulation { touch-action: manipulation; }
+    </style>
+</head>
+<body class="bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col font-sans pb-10 antialiased transition-colors duration-200">
+
+    <header class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-700/60 sticky top-0 z-30 px-4 py-3.5 flex items-center justify-between shadow-sm dark:shadow-lg">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-sky-600 flex items-center justify-center text-white shadow-md shadow-sky-600/30">
+                <i class="fa-solid fa-wallet text-lg"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold leading-none text-slate-900 dark:text-white">Lançar Gastos</h1>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">FinControl Mobile</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <!-- Botão Alternância de Tema -->
+            <button id="btn-theme-toggle" onclick="toggleTheme()" class="p-2.5 rounded-xl bg-slate-200/80 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300 dark:hover:bg-slate-700 transition" title="Alternar Tema">
+                <i id="theme-toggle-icon" class="fa-solid fa-sun text-base"></i>
+            </button>
+            <button onclick="toggleModal('modal-script')" class="p-2.5 rounded-xl bg-slate-200/80 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300 dark:hover:bg-slate-700 transition" title="Código Apps Script">
+                <i class="fa-solid fa-code text-base"></i>
+            </button>
+            <button onclick="toggleModal('modal-settings')" class="p-2.5 rounded-xl bg-slate-200/80 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300 dark:hover:bg-slate-700 transition" title="Configurações">
+                <i class="fa-solid fa-gear text-base"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Banner Webhook Status -->
+    <div id="status-webhook-banner" class="hidden bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 text-xs text-amber-700 dark:text-amber-300 flex items-center justify-between">
+        <span class="flex items-center gap-1.5 font-medium">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            URL do Apps Script não configurada.
+        </span>
+        <button onclick="toggleModal('modal-settings')" class="underline font-bold hover:text-amber-800 dark:hover:text-amber-200">Configurar</button>
+    </div>
+
+    <main class="flex-1 max-w-lg w-full mx-auto p-4 space-y-5">
+
+        <!-- Card do Formulário Principal -->
+        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/70 rounded-2xl p-5 shadow-xl space-y-4">
+            <form id="expense-form" onsubmit="handleFormSubmit(event)" class="space-y-4">
+                
+                <!-- 1. DATA -->
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                        <i class="fa-regular fa-calendar text-sky-600 dark:text-sky-400 mr-1.5"></i> Data
+                    </label>
+                    <input type="date" id="input-date" required class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-3 text-base text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition">
+                </div>
+
+                <!-- 2. CATEGORIA -->
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                        <i class="fa-solid fa-tag text-sky-600 dark:text-sky-400 mr-1.5"></i> Categoria
+                    </label>
+                    <select id="input-category" required class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-3 text-base text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition">
+                        <option value="Beleza">Beleza</option>
+                        <option value="Casa">Casa</option>
+                        <option value="Educação">Educação</option>
+                        <option value="Internet">Internet</option>
+                        <option value="Lazer">Lazer</option>
+                        <option value="Moradia">Moradia</option>
+                        <option value="Outros">Outros</option>
+                        <option value="Presentes">Presentes</option>
+                        <option value="Refeições">Refeições</option>
+                        <option value="Saúde">Saúde</option>
+                        <option value="Supermercado">Supermercado</option>
+                        <option value="Transporte">Transporte</option>
+                        <option value="Vestuário">Vestuário</option>
+                        <option value="--NA--">--NA--</option>
+                    </select>
+                </div>
+
+                <!-- 3. GASTO -->
+                <div>
+                    <div class="flex justify-between items-center mb-1.5">
+                        <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                            <i class="fa-solid fa-store text-sky-600 dark:text-sky-400 mr-1.5"></i> Gasto / Estabelecimento
+                        </label>
+                        <span id="detected-tag" class="hidden text-xs font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
+                            <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Parcelado
+                        </span>
+                    </div>
+                    <input type="text" id="input-gasto" required placeholder="Ex: Supermercado (1/3) ou Aluguel" oninput="onGastoInputChanged()" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-3 text-base text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition">
+                </div>
+
+                <!-- 4. VALOR (R$) -->
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                        <i class="fa-solid fa-brazilian-real-sign text-emerald-600 dark:text-emerald-400 mr-1.5"></i> Valor (R$)
+                    </label>
+                    <div class="relative">
+                        <span class="absolute left-3.5 top-3 text-slate-500 dark:text-slate-400 text-base font-semibold">R$</span>
+                        <input type="number" id="input-valor" step="0.01" min="0.01" required placeholder="0,00" oninput="updateAutoPreview()" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl pl-11 pr-3.5 py-3 text-lg font-bold text-emerald-600 dark:text-emerald-400 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition">
+                    </div>
+                </div>
+
+                <!-- 5. COMENTÁRIO -->
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                        <i class="fa-regular fa-comment text-sky-600 dark:text-sky-400 mr-1.5"></i> Comentário / Observação (Opcional)
+                    </label>
+                    <input type="text" id="input-comentario" placeholder="Ex: Compra cartão de crédito" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-3 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition">
+                </div>
+
+                <!-- Resumo Automático -->
+                <div class="bg-slate-100 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 text-xs space-y-1.5">
+                    <div class="flex justify-between text-slate-600 dark:text-slate-400">
+                        <span>Padrão do ID:</span>
+                        <code id="preview-id" class="text-sky-600 dark:text-sky-300 font-mono font-bold text-sm">-</code>
+                    </div>
+                    <div class="flex justify-between text-slate-600 dark:text-slate-400">
+                        <span>Lançamentos:</span>
+                        <span id="preview-count" class="text-slate-900 dark:text-white font-semibold text-sm">1 linha</span>
+                    </div>
+                </div>
+
+                <!-- Botão Enviar -->
+                <button type="submit" id="btn-submit" class="w-full bg-sky-600 hover:bg-sky-500 active:bg-sky-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-sky-600/30 flex items-center justify-center gap-2 transition touch-action-manipulation text-lg">
+                    <i class="fa-solid fa-paper-plane"></i>
+                    <span>Gravar na Planilha</span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Histórico Recente -->
+        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/70 rounded-2xl p-4.5 shadow-xl space-y-3">
+            <div class="flex items-center justify-between">
+                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                    <i class="fa-solid fa-clock-rotate-left text-sky-600 dark:text-sky-400"></i> Histórico Recente (Celular)
+                </h2>
+                <button onclick="clearLocalHistory()" class="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 font-medium">
+                    Limpar
+                </button>
+            </div>
+
+            <div id="local-history-list" class="space-y-2.5 max-h-64 overflow-y-auto pr-1 text-xs"></div>
+        </div>
+    </main>
+
+    <!-- MODAL: Configurações -->
+    <div id="modal-settings" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-3">
+                <h3 class="font-bold text-slate-900 dark:text-white flex items-center gap-2 text-base">
+                    <i class="fa-solid fa-gear text-sky-600 dark:text-sky-400"></i> Configurações da Planilha
+                </h3>
+                <button onclick="toggleModal('modal-settings')" class="text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                        URL do Google Apps Script (Webhook)
+                    </label>
+                    <input type="url" id="setting-script-url" placeholder="https://script.google.com/macros/s/.../exec" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl p-3 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-sky-500">
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-700">
+                <button onclick="toggleModal('modal-settings')" class="px-4 py-2.5 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold">
+                    Cancelar
+                </button>
+                <button onclick="saveSettings()" class="px-4 py-2.5 rounded-xl bg-sky-600 text-white text-xs font-semibold hover:bg-sky-500">
+                    Salvar URL
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Código Apps Script -->
+    <div id="modal-script" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl max-w-lg w-full p-5 space-y-4 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-3">
+                <h3 class="font-bold text-slate-900 dark:text-white flex items-center gap-2 text-base">
+                    <i class="fa-solid fa-code text-sky-600 dark:text-sky-400"></i> Código Apps Script (`doPost`)
+                </h3>
+                <button onclick="toggleModal('modal-script')" class="text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <p class="text-xs text-slate-600 dark:text-slate-300">
+                Substitua ou certifique-se de que sua função <code class="text-sky-600 dark:text-sky-300">doPost</code> na planilha está assim:
+            </p>
+
+            <div class="relative">
+                <textarea id="code-gas" readonly class="w-full h-48 bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl p-3 font-mono text-[11px] text-emerald-700 dark:text-emerald-400 focus:outline-none resize-none"></textarea>
+                <button onclick="copyCodeGas()" class="absolute top-2 right-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-[10px] px-2.5 py-1 rounded-md border border-slate-300 dark:border-slate-700 flex items-center gap-1 font-semibold">
+                    <i class="fa-regular fa-copy"></i> Copiar
+                </button>
+            </div>
+
+            <div class="flex justify-end pt-2 border-t border-slate-200 dark:border-slate-700">
+                <button onclick="toggleModal('modal-script')" class="px-4 py-2.5 rounded-xl bg-sky-600 text-white text-xs font-semibold">
+                    Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const GAS_CODE_SNIPPET = `function doPost(e) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("Dados");
+    
+    if (!sheet) {
+      return ContentService.createTextOutput(JSON.stringify({ success: false, error: "Aba 'Dados' não encontrada." }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var body = JSON.parse(e.postData.contents);
+    var rowsToAdd = [];
+    var items = Array.isArray(body) ? body : [body];
+    
+    for (var i = 0; i < items.length; i++) {
+      var item = items[i];
+      rowsToAdd.push([
+        item.Data || "",
+        item.Gasto || "",
+        item.Valor !== undefined ? item.Valor : "",
+        item.ID || "",
+        item.Categoria || "--NA--",
+        item.Comentário || item.Comentario || ""
+      ]);
+    }
+    
+    var valuesA = sheet.getRange("A:A").getValues();
+    var lastDataRow = 0;
+    
+    for (var r = valuesA.length - 1; r >= 0; r--) {
+      if (valuesA[r][0] !== "" && valuesA[r][0] !== null && valuesA[r][0] !== undefined) {
+        lastDataRow = r + 1;
+        break;
+      }
+    }
+    
+    var targetRow = lastDataRow > 0 ? lastDataRow + 1 : 2;
+    sheet.getRange(targetRow, 1, rowsToAdd.length, 6).setValues(rowsToAdd);
+    
+    return ContentService.createTextOutput(JSON.stringify({ success: true, count: rowsToAdd.length }))
+      .setMimeType(ContentService.MimeType.JSON);
+      
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}`;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('input-date').value = today;
+            document.getElementById('code-gas').value = GAS_CODE_SNIPPET;
+
+            const savedUrl = localStorage.getItem('fincontrol_web_script_url') || '';
+            document.getElementById('setting-script-url').value = savedUrl;
+
+            checkScriptUrl();
+            renderLocalHistory();
+            updateAutoPreview();
+        });
+
+        function initTheme() {
+            const savedTheme = localStorage.getItem('fincontrol_theme');
+            const html = document.documentElement;
+            const icon = document.getElementById('theme-toggle-icon');
+
+            if (savedTheme === 'light') {
+                html.classList.remove('dark');
+                icon.className = 'fa-solid fa-moon text-base';
+            } else {
+                html.classList.add('dark');
+                icon.className = 'fa-solid fa-sun text-base';
+            }
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const icon = document.getElementById('theme-toggle-icon');
+
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                localStorage.setItem('fincontrol_theme', 'light');
+                icon.className = 'fa-solid fa-moon text-base';
+            } else {
+                html.classList.add('dark');
+                localStorage.setItem('fincontrol_theme', 'dark');
+                icon.className = 'fa-solid fa-sun text-base';
+            }
+        }
+
+        function toggleModal(id) {
+            document.getElementById(id).classList.toggle('hidden');
+        }
+
+        function checkScriptUrl() {
+            const url = localStorage.getItem('fincontrol_web_script_url');
+            const banner = document.getElementById('status-webhook-banner');
+            if (!url) {
+                banner.classList.remove('hidden');
+            } else {
+                banner.classList.add('hidden');
+            }
+        }
+
+        function saveSettings() {
+            const url = document.getElementById('setting-script-url').value.trim();
+            localStorage.setItem('fincontrol_web_script_url', url);
+            checkScriptUrl();
+            toggleModal('modal-settings');
+            alert('URL salva com sucesso!');
+        }
+
+        function sanitizeForId(text) {
+            if (!text) return '';
+            return text.replace(/\(\d+\/\d+\)/g, '')
+                       .replace(/[^A-Za-z0-9à-úÀ-Ú]/g, '')
+                       .trim();
+        }
+
+        function parseGastoText(text) {
+            const match = text.match(/\((\d+)\/(\d+)\)/);
+            const clean = sanitizeForId(text);
+
+            if (match) {
+                const current = parseInt(match[1], 10);
+                const total = parseInt(match[2], 10);
+
+                if (total > 1 && current <= total) {
+                    return {
+                        isParcelado: true,
+                        cleanName: clean,
+                        startParcela: current,
+                        totalParcelas: total
+                    };
+                }
+            }
+
+            return {
+                isParcelado: false,
+                cleanName: clean,
+                startParcela: 1,
+                totalParcelas: 1
+            };
+        }
+
+        function onGastoInputChanged() {
+            const gastoVal = document.getElementById('input-gasto').value;
+            const info = parseGastoText(gastoVal);
+
+            const detectedTag = document.getElementById('detected-tag');
+            if (info.isParcelado) {
+                detectedTag.classList.remove('hidden');
+            } else {
+                detectedTag.classList.add('hidden');
+            }
+
+            updateAutoPreview();
+        }
+
+        function updateAutoPreview() {
+            const gastoRaw = document.getElementById('input-gasto').value;
+            const valor = parseFloat(document.getElementById('input-valor').value) || 0;
+            const info = parseGastoText(gastoRaw);
+
+            if (info.isParcelado && info.cleanName) {
+                const roundedVal = Math.round(valor);
+                const expectedId = `${info.cleanName}_${info.totalParcelas}_${roundedVal}`;
+                const remainingCount = Math.max(1, (info.totalParcelas - info.startParcela + 1));
+
+                document.getElementById('preview-id').textContent = expectedId;
+                document.getElementById('preview-count').textContent = `${remainingCount} linha(s) [parcela ${info.startParcela} a ${info.totalParcelas}]`;
+            } else {
+                document.getElementById('preview-id').textContent = info.cleanName || '-';
+                document.getElementById('preview-count').textContent = '1 linha';
+            }
+        }
+
+        function calculateMonthlyDate(startDateStr, monthOffset) {
+            const parts = startDateStr.split('-');
+            let year = parseInt(parts[0], 10);
+            let month = parseInt(parts[1], 10) - 1;
+            let day = parseInt(parts[2], 10);
+
+            let targetMonth = month + monthOffset;
+            let targetYear = year + Math.floor(targetMonth / 12);
+            targetMonth = (targetMonth % 12 + 12) % 12;
+
+            let maxDaysInTargetMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+            let finalDay = Math.min(day, maxDaysInTargetMonth);
+
+            let yyyy = targetYear;
+            let mm = String(targetMonth + 1).padStart(2, '0');
+            let dd = String(finalDay).padStart(2, '0');
+
+            return `${yyyy}-${mm}-${dd}`;
+        }
+
+        // ENVIO COM VALIDAÇÃO REAL DA RESPOSTA DO SCRIPT
+        async function handleFormSubmit(event) {
+            event.preventDefault();
+
+            const scriptUrl = localStorage.getItem('fincontrol_web_script_url');
+            if (!scriptUrl) {
+                alert('Atenção: Configure a URL do Google Apps Script na engrenagem antes de gravar.');
+                toggleModal('modal-settings');
+                return;
+            }
+
+            const startDate = document.getElementById('input-date').value;
+            const categoria = document.getElementById('input-category').value;
+            const gastoInput = document.getElementById('input-gasto').value.trim();
+            const valor = parseFloat(document.getElementById('input-valor').value);
+            const comentario = document.getElementById('input-comentario').value.trim();
+
+            const info = parseGastoText(gastoInput);
+            const payloadItems = [];
+
+            if (info.isParcelado) {
+                const roundedVal = Math.round(valor);
+                const generatedId = `${info.cleanName}_${info.totalParcelas}_${roundedVal}`;
+
+                let loopIndex = 0;
+                for (let p = info.startParcela; p <= info.totalParcelas; p++) {
+                    const parcelDate = calculateMonthlyDate(startDate, loopIndex);
+                    const tagParcela = `(${p}/${info.totalParcelas})`;
+                    
+                    const itemGasto = `${info.cleanName} ${tagParcela}`;
+                    const itemComentario = comentario ? `${comentario} ${tagParcela}` : '';
+
+                    payloadItems.push({
+                        Data: parcelDate,
+                        Gasto: itemGasto,
+                        Valor: valor,
+                        ID: generatedId,
+                        Categoria: categoria,
+                        Comentário: itemComentario
+                    });
+                    loopIndex++;
+                }
+            } else {
+                payloadItems.push({
+                    Data: startDate,
+                    Gasto: gastoInput,
+                    Valor: valor,
+                    ID: info.cleanName,
+                    Categoria: categoria,
+                    Comentário: comentario
+                });
+            }
+
+            const btn = document.getElementById('btn-submit');
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Gravando...`;
+
+            try {
+                // Envio via fetch com text/plain para ignorar preflight CORS e ler a resposta JSON
+                const response = await fetch(scriptUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payloadItems)
+                });
+
+                const result = await response.json();
+
+                if (result && result.success === true) {
+                    saveToLocalHistory({
+                        timestamp: new Date().toLocaleString('pt-BR'),
+                        gasto: info.cleanName + (info.isParcelado ? ` (${payloadItems.length} parcelas)` : ''),
+                        valor: valor * payloadItems.length,
+                        count: payloadItems.length,
+                        status: 'Sucesso'
+                    });
+
+                    alert(`Gravado com sucesso! ${payloadItems.length} item(ns) adicionado(s) na planilha.`);
+                    
+                    document.getElementById('input-gasto').value = '';
+                    document.getElementById('input-valor').value = '';
+                    document.getElementById('input-comentario').value = '';
+                    document.getElementById('detected-tag').classList.add('hidden');
+                    updateAutoPreview();
+                } else {
+                    throw new Error(result.error || 'A planilha não confirmou o recebimento dos dados.');
+                }
+
+            } catch (err) {
+                console.error(err);
+                saveToLocalHistory({
+                    timestamp: new Date().toLocaleString('pt-BR'),
+                    gasto: info.cleanName,
+                    valor: valor,
+                    count: payloadItems.length,
+                    status: 'Erro'
+                });
+
+                alert('Falha ao gravar na planilha!\n\nVerifique se a URL do Webhook configurada na engrenagem está correta e com acesso público.');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> <span>Gravar na Planilha</span>`;
+            }
+        }
+
+        function saveToLocalHistory(item) {
+            let history = JSON.parse(localStorage.getItem('fincontrol_local_history') || '[]');
+            history.unshift(item);
+            if (history.length > 20) history = history.slice(0, 20);
+            localStorage.setItem('fincontrol_local_history', JSON.stringify(history));
+            renderLocalHistory();
+        }
+
+        function renderLocalHistory() {
+            const listEl = document.getElementById('local-history-list');
+            const history = JSON.parse(localStorage.getItem('fincontrol_local_history') || '[]');
+
+            if (history.length === 0) {
+                listEl.innerHTML = `<p class="text-slate-400 dark:text-slate-500 text-center py-3 italic">Nenhum lançamento recente neste aparelho.</p>`;
+                return;
+            }
+
+            listEl.innerHTML = history.map(item => `
+                <div class="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3 flex items-center justify-between">
+                    <div>
+                        <div class="font-bold text-slate-900 dark:text-white text-xs">${item.gasto}</div>
+                        <div class="text-[10px] text-slate-500 dark:text-slate-400 font-medium">${item.timestamp} • ${item.count} linha(s)</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-extrabold text-emerald-600 dark:text-emerald-400 text-xs">R$ ${item.valor.toFixed(2)}</div>
+                        <span class="text-[9px] px-1.5 py-0.2 rounded font-semibold ${item.status === 'Sucesso' ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300' : 'bg-rose-500/20 text-rose-700 dark:text-rose-300'}">
+                            ${item.status}
+                        </span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function clearLocalHistory() {
+            localStorage.removeItem('fincontrol_local_history');
+            renderLocalHistory();
+        }
+
+        function copyCodeGas() {
+            const textarea = document.getElementById('code-gas');
+            textarea.select();
+            document.execCommand('copy');
+            alert('Código do Apps Script copiado!');
+        }
+    </script>
+</body>
+</html>
