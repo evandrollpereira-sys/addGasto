@@ -10,11 +10,12 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Gastos">
     <meta name="theme-color" content="#0f172a">
-	<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=1">
-	<link rel="icon" type="image/png" sizes="32x32" href="/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=1">
+    <link rel="icon" type="image/png" sizes="32x32" href="/apple-touch-icon.png">
   
-    <!-- Tailwind CSS & Font Awesome -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <script>
@@ -23,7 +24,12 @@
             theme: {
                 extend: {
                     colors: {
-                        brand: { 50: '#f0f9ff', 500: '#0284c7', 600: '#0369a1', 700: '#075985' }
+                        brand: {
+                            50: '#f0f9ff',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            700: '#075985',
+                        }
                     }
                 }
             }
@@ -31,29 +37,75 @@
     </script>
 
     <style>
-        body {
+        *, ::before, ::after {
+            box-sizing: border-box !important;
+        }
+
+        html, body {
+            max-width: 100vw !important;
+            overflow-x: hidden !important;
             padding-top: env(safe-area-inset-top);
-            padding-bottom: env(safe-area-inset-bottom);
+            padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
             -webkit-tap-highlight-color: transparent;
         }
-        .touch-action-manipulation { touch-action: manipulation; }
+
+        .touch-action-manipulation {
+            touch-action: manipulation;
+        }
+
+        /* CORREÇÃO CRÍTICA DO INPUT DATE NO IOS SAFARI */
+        input[type="date"] {
+            -webkit-appearance: none !important;
+            -moz-appearance: none !important;
+            appearance: none !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+            box-sizing: border-box !important;
+            min-height: 48px;
+            display: block !important;
+            margin: 0 !important;
+            background-clip: padding-box !important;
+        }
+
+        /* Alinhamento interno da data no WebKit iOS */
+        input[type="date"]::-webkit-date-and-time-value {
+            text-align: left !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            line-height: inherit !important;
+            display: block !important;
+        }
+
+        input[type="date"]::-webkit-inner-spin-button,
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            opacity: 0.6;
+        }
+
+        select, input, textarea {
+            max-width: 100% !important;
+            min-width: 0 !important;
+            box-sizing: border-box !important;
+        }
     </style>
 </head>
-<body class="bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col font-sans pb-10 antialiased transition-colors duration-200">
+<body class="bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col font-sans pb-16 antialiased selection:bg-sky-500 selection:text-white transition-colors duration-200">
 
-    <header class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-700/60 sticky top-0 z-30 px-4 py-3.5 flex items-center justify-between shadow-sm dark:shadow-lg">
+    <header class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-700/60 sticky top-0 z-30 px-5 py-3.5 flex items-center justify-between shadow-sm dark:shadow-lg w-full max-w-full">
         <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-sky-600 flex items-center justify-center text-white shadow-md shadow-sky-600/30">
+            <div class="w-10 h-10 rounded-xl bg-sky-600 flex items-center justify-center text-white shadow-md shadow-sky-600/30 flex-shrink-0">
                 <i class="fa-solid fa-wallet text-lg"></i>
             </div>
-            <div>
-                <h1 class="text-lg font-bold leading-none text-slate-900 dark:text-white">Lançar Gastos</h1>
-                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">FinControl Mobile</p>
+            <div class="min-w-0">
+                <h1 class="text-lg font-bold leading-none text-slate-900 dark:text-white truncate">Lançar Gastos</h1>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium truncate">FinControl Mobile</p>
             </div>
         </div>
 
-        <div class="flex items-center gap-2">
-            <!-- Botão Alternância de Tema -->
+        <div class="flex items-center gap-2 flex-shrink-0">
+            <!-- Botão de Alternância de Modo Escuro / Claro -->
             <button id="btn-theme-toggle" onclick="toggleTheme()" class="p-2.5 rounded-xl bg-slate-200/80 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300 dark:hover:bg-slate-700 transition" title="Alternar Tema">
                 <i id="theme-toggle-icon" class="fa-solid fa-sun text-base"></i>
             </button>
@@ -67,34 +119,37 @@
     </header>
 
     <!-- Banner Webhook Status -->
-    <div id="status-webhook-banner" class="hidden bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 text-xs text-amber-700 dark:text-amber-300 flex items-center justify-between">
-        <span class="flex items-center gap-1.5 font-medium">
-            <i class="fa-solid fa-triangle-exclamation"></i>
-            URL do Apps Script não configurada.
+    <div id="status-webhook-banner" class="hidden bg-amber-500/10 border-b border-amber-500/20 px-5 py-2.5 text-xs text-amber-700 dark:text-amber-300 flex items-center justify-between w-full max-w-full">
+        <span class="flex items-center gap-1.5 font-medium truncate">
+            <i class="fa-solid fa-triangle-exclamation flex-shrink-0"></i>
+            <span class="truncate">URL do Apps Script não configurada.</span>
         </span>
-        <button onclick="toggleModal('modal-settings')" class="underline font-bold hover:text-amber-800 dark:hover:text-amber-200">Configurar</button>
+        <button onclick="toggleModal('modal-settings')" class="underline font-bold hover:text-amber-800 dark:hover:text-amber-200 flex-shrink-0 ml-2">Configurar</button>
     </div>
 
-    <main class="flex-1 max-w-lg w-full mx-auto p-4 space-y-5">
+    <main class="flex-1 max-w-lg w-full mx-auto px-5 py-5 space-y-6 overflow-x-hidden">
 
-        <!-- Card do Formulário Principal -->
-        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/70 rounded-2xl p-5 shadow-xl space-y-4">
-            <form id="expense-form" onsubmit="handleFormSubmit(event)" class="space-y-4">
+        <!-- Card do Formulário -->
+        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/70 rounded-2xl p-6 shadow-xl space-y-4.5 w-full max-w-full overflow-hidden">
+            
+            <form id="expense-form" onsubmit="handleFormSubmit(event)" class="space-y-4.5 w-full max-w-full">
                 
                 <!-- 1. DATA -->
-                <div>
+                <div class="w-full max-w-full overflow-hidden">
                     <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                         <i class="fa-regular fa-calendar text-sky-600 dark:text-sky-400 mr-1.5"></i> Data
                     </label>
-                    <input type="date" id="input-date" required class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-3 text-base text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition">
+                    <div class="w-full max-w-full overflow-hidden rounded-xl">
+                        <input type="date" id="input-date" required class="w-full max-w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3 text-base text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition box-border">
+                    </div>
                 </div>
 
                 <!-- 2. CATEGORIA -->
-                <div>
+                <div class="w-full max-w-full overflow-hidden">
                     <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                         <i class="fa-solid fa-tag text-sky-600 dark:text-sky-400 mr-1.5"></i> Categoria
                     </label>
-                    <select id="input-category" required class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-3 text-base text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition">
+                    <select id="input-category" required class="w-full max-w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3 text-base text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition box-border">
                         <option value="Beleza">Beleza</option>
                         <option value="Casa">Casa</option>
                         <option value="Educação">Educação</option>
@@ -112,91 +167,97 @@
                     </select>
                 </div>
 
-                <!-- 3. GASTO -->
-                <div>
-                    <div class="flex justify-between items-center mb-1.5">
-                        <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                <!-- 3. GASTO (DESCRIÇÃO) -->
+                <div class="w-full max-w-full overflow-hidden">
+                    <div class="flex justify-between items-center mb-1.5 gap-2">
+                        <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 truncate">
                             <i class="fa-solid fa-store text-sky-600 dark:text-sky-400 mr-1.5"></i> Gasto / Estabelecimento
                         </label>
-                        <span id="detected-tag" class="hidden text-xs font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
+                        <span id="detected-tag" class="hidden text-xs font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 px-2.5 py-0.5 rounded-full border border-emerald-500/30 flex-shrink-0">
                             <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Parcelado
                         </span>
                     </div>
-                    <input type="text" id="input-gasto" required placeholder="Ex: Supermercado (1/3) ou Aluguel" oninput="onGastoInputChanged()" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-3 text-base text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition">
+                    <input type="text" id="input-gasto" required placeholder="Ex: Supermercado (1/3) ou Aluguel" oninput="onGastoInputChanged()" class="w-full max-w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3 text-base text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition box-border">
                 </div>
 
                 <!-- 4. VALOR (R$) -->
-                <div>
+                <div class="w-full max-w-full overflow-hidden">
                     <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                         <i class="fa-solid fa-brazilian-real-sign text-emerald-600 dark:text-emerald-400 mr-1.5"></i> Valor (R$)
                     </label>
-                    <div class="relative">
-                        <span class="absolute left-3.5 top-3 text-slate-500 dark:text-slate-400 text-base font-semibold">R$</span>
-                        <input type="number" id="input-valor" step="0.01" min="0.01" required placeholder="0,00" oninput="updateAutoPreview()" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl pl-11 pr-3.5 py-3 text-lg font-bold text-emerald-600 dark:text-emerald-400 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition">
+                    <div class="relative w-full max-w-full">
+                        <span class="absolute left-4 top-3 text-slate-500 dark:text-slate-400 text-base font-semibold">R$</span>
+                        <input type="number" id="input-valor" step="0.01" min="0.01" required placeholder="0,00" oninput="updateAutoPreview()" class="w-full max-w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl pl-12 pr-4 py-3 text-lg font-bold text-emerald-600 dark:text-emerald-400 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition box-border">
                     </div>
                 </div>
 
                 <!-- 5. COMENTÁRIO -->
-                <div>
+                <div class="w-full max-w-full overflow-hidden">
                     <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                         <i class="fa-regular fa-comment text-sky-600 dark:text-sky-400 mr-1.5"></i> Comentário / Observação (Opcional)
                     </label>
-                    <input type="text" id="input-comentario" placeholder="Ex: Compra cartão de crédito" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-3 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition">
+                    <input type="text" id="input-comentario" placeholder="Ex: Compra cartão de crédito" class="w-full max-w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition box-border">
                 </div>
 
-                <!-- Resumo Automático -->
-                <div class="bg-slate-100 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 text-xs space-y-1.5">
-                    <div class="flex justify-between text-slate-600 dark:text-slate-400">
-                        <span>Padrão do ID:</span>
-                        <code id="preview-id" class="text-sky-600 dark:text-sky-300 font-mono font-bold text-sm">-</code>
+                <!-- Box Informativo de ID e Resumo Automático -->
+                <div class="bg-slate-100 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-4 text-xs space-y-1.5 w-full max-w-full overflow-hidden">
+                    <div class="flex justify-between items-center text-slate-600 dark:text-slate-400 gap-2">
+                        <span class="flex-shrink-0 font-medium">Padrão do ID:</span>
+                        <code id="preview-id" class="text-sky-600 dark:text-sky-300 font-mono font-bold text-sm truncate max-w-[60%] text-right">-</code>
                     </div>
-                    <div class="flex justify-between text-slate-600 dark:text-slate-400">
-                        <span>Lançamentos:</span>
-                        <span id="preview-count" class="text-slate-900 dark:text-white font-semibold text-sm">1 linha</span>
+                    <div class="flex justify-between items-center text-slate-600 dark:text-slate-400 gap-2">
+                        <span class="flex-shrink-0 font-medium">Lançamentos:</span>
+                        <span id="preview-count" class="text-slate-900 dark:text-white font-semibold text-sm truncate text-right">1 linha</span>
                     </div>
                 </div>
 
                 <!-- Botão Enviar -->
-                <button type="submit" id="btn-submit" class="w-full bg-sky-600 hover:bg-sky-500 active:bg-sky-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-sky-600/30 flex items-center justify-center gap-2 transition touch-action-manipulation text-lg">
+                <button type="submit" id="btn-submit" class="w-full max-w-full bg-sky-600 hover:bg-sky-500 active:bg-sky-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-sky-600/30 flex items-center justify-center gap-2 transition touch-action-manipulation text-lg">
                     <i class="fa-solid fa-paper-plane"></i>
                     <span>Gravar na Planilha</span>
                 </button>
             </form>
         </div>
 
-        <!-- Histórico Recente -->
-        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/70 rounded-2xl p-4.5 shadow-xl space-y-3">
-            <div class="flex items-center justify-between">
-                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                    <i class="fa-solid fa-clock-rotate-left text-sky-600 dark:text-sky-400"></i> Histórico Recente (Celular)
+        <!-- Histórico de Lançamentos Recentes -->
+        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/70 rounded-2xl p-6 shadow-xl space-y-4 w-full max-w-full overflow-hidden mb-6">
+            <div class="flex items-center justify-between w-full px-1">
+                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5 min-w-0 pr-2">
+                    <i class="fa-solid fa-clock-rotate-left text-sky-600 dark:text-sky-400 flex-shrink-0"></i> 
+                    <span class="truncate">Histórico Recente (Celular)</span>
                 </h2>
-                <button onclick="clearLocalHistory()" class="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 font-medium">
+                <button onclick="clearLocalHistory()" class="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 font-medium flex-shrink-0 py-0.5 px-1.5 rounded">
                     Limpar
                 </button>
             </div>
 
-            <div id="local-history-list" class="space-y-2.5 max-h-64 overflow-y-auto pr-1 text-xs"></div>
+            <div id="local-history-list" class="space-y-3 max-h-64 overflow-y-auto pr-1 text-xs w-full max-w-full">
+                <!-- Preenchido via JS -->
+            </div>
         </div>
     </main>
 
-    <!-- MODAL: Configurações -->
+    <!-- MODAL: Configurações do Script -->
     <div id="modal-settings" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl max-w-md w-full p-5 space-y-4 shadow-2xl">
+        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl overflow-hidden">
             <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-3">
-                <h3 class="font-bold text-slate-900 dark:text-white flex items-center gap-2 text-base">
-                    <i class="fa-solid fa-gear text-sky-600 dark:text-sky-400"></i> Configurações da Planilha
+                <h3 class="font-bold text-slate-900 dark:text-white flex items-center gap-2 text-base truncate">
+                    <i class="fa-solid fa-gear text-sky-600 dark:text-sky-400 flex-shrink-0"></i> Configurações da Planilha
                 </h3>
-                <button onclick="toggleModal('modal-settings')" class="text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                <button onclick="toggleModal('modal-settings')" class="text-slate-400 hover:text-slate-600 dark:hover:text-white ml-2 flex-shrink-0">
                     <i class="fa-solid fa-xmark text-xl"></i>
                 </button>
             </div>
 
-            <div class="space-y-3">
+            <div class="space-y-3 w-full">
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                         URL do Google Apps Script (Webhook)
                     </label>
-                    <input type="url" id="setting-script-url" placeholder="https://script.google.com/macros/s/.../exec" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl p-3 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-sky-500">
+                    <input type="url" id="setting-script-url" placeholder="https://script.google.com/macros/s/.../exec" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl p-3 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-sky-500 box-border">
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
+                        Insira a URL gerada na publicação do seu projeto como Web App no Google Apps Script.
+                    </p>
                 </div>
             </div>
 
@@ -211,24 +272,24 @@
         </div>
     </div>
 
-    <!-- MODAL: Código Apps Script -->
+    <!-- MODAL: Código do Apps Script -->
     <div id="modal-script" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl max-w-lg w-full p-5 space-y-4 shadow-2xl">
+        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl overflow-hidden">
             <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-3">
-                <h3 class="font-bold text-slate-900 dark:text-white flex items-center gap-2 text-base">
-                    <i class="fa-solid fa-code text-sky-600 dark:text-sky-400"></i> Código Apps Script (`doPost`)
+                <h3 class="font-bold text-slate-900 dark:text-white flex items-center gap-2 text-base truncate">
+                    <i class="fa-solid fa-code text-sky-600 dark:text-sky-400 flex-shrink-0"></i> Código Apps Script (`doPost`)
                 </h3>
-                <button onclick="toggleModal('modal-script')" class="text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                <button onclick="toggleModal('modal-script')" class="text-slate-400 hover:text-slate-600 dark:hover:text-white ml-2 flex-shrink-0">
                     <i class="fa-solid fa-xmark text-xl"></i>
                 </button>
             </div>
 
             <p class="text-xs text-slate-600 dark:text-slate-300">
-                Substitua ou certifique-se de que sua função <code class="text-sky-600 dark:text-sky-300">doPost</code> na planilha está assim:
+                Adicione esta função no mesmo projeto da planilha (junto da função <code class="text-sky-600 dark:text-sky-300">doGet</code> do dashboard):
             </p>
 
-            <div class="relative">
-                <textarea id="code-gas" readonly class="w-full h-48 bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl p-3 font-mono text-[11px] text-emerald-700 dark:text-emerald-400 focus:outline-none resize-none"></textarea>
+            <div class="relative w-full">
+                <textarea id="code-gas" readonly class="w-full h-48 bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl p-3 font-mono text-[11px] text-emerald-700 dark:text-emerald-400 focus:outline-none resize-none box-border"></textarea>
                 <button onclick="copyCodeGas()" class="absolute top-2 right-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-[10px] px-2.5 py-1 rounded-md border border-slate-300 dark:border-slate-700 flex items-center gap-1 font-semibold">
                     <i class="fa-regular fa-copy"></i> Copiar
                 </button>
@@ -243,18 +304,20 @@
     </div>
 
     <script>
-        const GAS_CODE_SNIPPET = `function doPost(e) {
+        const GAS_CODE_SNIPPET = `// Adicione/Atualize esta função no projeto Apps Script da planilha
+function doPost(e) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = ss.getSheetByName("Dados");
     
     if (!sheet) {
-      return ContentService.createTextOutput(JSON.stringify({ success: false, error: "Aba 'Dados' não encontrada." }))
+      return ContentService.createTextOutput(JSON.stringify({ error: "Aba 'Dados' não encontrada." }))
         .setMimeType(ContentService.MimeType.JSON);
     }
     
     var body = JSON.parse(e.postData.contents);
     var rowsToAdd = [];
+    
     var items = Array.isArray(body) ? body : [body];
     
     for (var i = 0; i < items.length; i++) {
@@ -269,6 +332,7 @@
       ]);
     }
     
+    // Varredura para encontrar a última linha com dados na Coluna A (Data)
     var valuesA = sheet.getRange("A:A").getValues();
     var lastDataRow = 0;
     
@@ -280,16 +344,24 @@
     }
     
     var targetRow = lastDataRow > 0 ? lastDataRow + 1 : 2;
+    
     sheet.getRange(targetRow, 1, rowsToAdd.length, 6).setValues(rowsToAdd);
     
-    return ContentService.createTextOutput(JSON.stringify({ success: true, count: rowsToAdd.length }))
+    return ContentService.createTextOutput(JSON.stringify({ success: true, count: rowsToAdd.length, insertedAtRow: targetRow }))
       .setMimeType(ContentService.MimeType.JSON);
       
   } catch (err) {
-    return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.toString() }))
+    return ContentService.createTextOutput(JSON.stringify({ error: err.toString() }))
       .setMimeType(ContentService.MimeType.JSON);
   }
 }`;
+
+        let detectedParcelaInfo = {
+            isParcelado: false,
+            cleanName: '',
+            startParcela: 1,
+            totalParcelas: 1
+        };
 
         document.addEventListener('DOMContentLoaded', () => {
             initTheme();
@@ -391,10 +463,10 @@
 
         function onGastoInputChanged() {
             const gastoVal = document.getElementById('input-gasto').value;
-            const info = parseGastoText(gastoVal);
+            detectedParcelaInfo = parseGastoText(gastoVal);
 
             const detectedTag = document.getElementById('detected-tag');
-            if (info.isParcelado) {
+            if (detectedParcelaInfo.isParcelado) {
                 detectedTag.classList.remove('hidden');
             } else {
                 detectedTag.classList.add('hidden');
@@ -441,13 +513,12 @@
             return `${yyyy}-${mm}-${dd}`;
         }
 
-        // ENVIO COM VALIDAÇÃO REAL DA RESPOSTA DO SCRIPT
         async function handleFormSubmit(event) {
             event.preventDefault();
 
             const scriptUrl = localStorage.getItem('fincontrol_web_script_url');
             if (!scriptUrl) {
-                alert('Atenção: Configure a URL do Google Apps Script na engrenagem antes de gravar.');
+                alert('Atenção: Configure a URL do Google Apps Script nas engrenagem do topo antes de gravar.');
                 toggleModal('modal-settings');
                 return;
             }
@@ -496,40 +567,36 @@
 
             const btn = document.getElementById('btn-submit');
             btn.disabled = true;
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Gravando...`;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Gravando ${payloadItems.length} item(ns)...`;
 
             try {
-                // Envio via fetch com text/plain para ignorar preflight CORS e ler a resposta JSON
-                const response = await fetch(scriptUrl, {
+                await fetch(scriptUrl, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payloadItems)
                 });
 
-                const result = await response.json();
+                saveToLocalHistory({
+                    timestamp: new Date().toLocaleString('pt-BR'),
+                    gasto: info.cleanName + (info.isParcelado ? ` (${info.totalParcelas - info.startParcela + 1} parcelas)` : ''),
+                    valor: valor * payloadItems.length,
+                    count: payloadItems.length,
+                    status: 'Sucesso'
+                });
 
-                if (result && result.success === true) {
-                    saveToLocalHistory({
-                        timestamp: new Date().toLocaleString('pt-BR'),
-                        gasto: info.cleanName + (info.isParcelado ? ` (${payloadItems.length} parcelas)` : ''),
-                        valor: valor * payloadItems.length,
-                        count: payloadItems.length,
-                        status: 'Sucesso'
-                    });
-
-                    alert(`Gravado com sucesso! ${payloadItems.length} item(ns) adicionado(s) na planilha.`);
-                    
-                    document.getElementById('input-gasto').value = '';
-                    document.getElementById('input-valor').value = '';
-                    document.getElementById('input-comentario').value = '';
-                    document.getElementById('detected-tag').classList.add('hidden');
-                    updateAutoPreview();
-                } else {
-                    throw new Error(result.error || 'A planilha não confirmou o recebimento dos dados.');
-                }
+                alert(`Sucesso! ${payloadItems.length} linha(s) enviada(s) para a planilha.`);
+                
+                document.getElementById('input-gasto').value = '';
+                document.getElementById('input-valor').value = '';
+                document.getElementById('input-comentario').value = '';
+                document.getElementById('detected-tag').classList.add('hidden');
+                updateAutoPreview();
 
             } catch (err) {
                 console.error(err);
+                alert('Erro ao enviar os dados: ' + err.message);
+
                 saveToLocalHistory({
                     timestamp: new Date().toLocaleString('pt-BR'),
                     gasto: info.cleanName,
@@ -537,8 +604,6 @@
                     count: payloadItems.length,
                     status: 'Erro'
                 });
-
-                alert('Falha ao gravar na planilha!\n\nVerifique se a URL do Webhook configurada na engrenagem está correta e com acesso público.');
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> <span>Gravar na Planilha</span>`;
@@ -558,19 +623,19 @@
             const history = JSON.parse(localStorage.getItem('fincontrol_local_history') || '[]');
 
             if (history.length === 0) {
-                listEl.innerHTML = `<p class="text-slate-400 dark:text-slate-500 text-center py-3 italic">Nenhum lançamento recente neste aparelho.</p>`;
+                listEl.innerHTML = `<p class="text-slate-400 dark:text-slate-500 text-center px-4 py-8 italic text-xs max-w-full overflow-hidden text-ellipsis whitespace-nowrap block">Nenhum lançamento recente neste aparelho.</p>`;
                 return;
             }
 
             listEl.innerHTML = history.map(item => `
-                <div class="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3 flex items-center justify-between">
-                    <div>
-                        <div class="font-bold text-slate-900 dark:text-white text-xs">${item.gasto}</div>
-                        <div class="text-[10px] text-slate-500 dark:text-slate-400 font-medium">${item.timestamp} • ${item.count} linha(s)</div>
+                <div class="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3 flex items-center justify-between w-full max-w-full overflow-hidden">
+                    <div class="min-w-0 pr-2 flex-1">
+                        <div class="font-bold text-slate-900 dark:text-white text-xs truncate">${item.gasto}</div>
+                        <div class="text-[10px] text-slate-500 dark:text-slate-400 font-medium truncate">${item.timestamp} • ${item.count} linha(s)</div>
                     </div>
-                    <div class="text-right">
+                    <div class="text-right flex-shrink-0">
                         <div class="font-extrabold text-emerald-600 dark:text-emerald-400 text-xs">R$ ${item.valor.toFixed(2)}</div>
-                        <span class="text-[9px] px-1.5 py-0.2 rounded font-semibold ${item.status === 'Sucesso' ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300' : 'bg-rose-500/20 text-rose-700 dark:text-rose-300'}">
+                        <span class="text-[9px] px-1.5 py-0.2 rounded font-semibold inline-block ${item.status === 'Sucesso' ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300' : 'bg-rose-500/20 text-rose-700 dark:text-rose-300'}">
                             ${item.status}
                         </span>
                     </div>
